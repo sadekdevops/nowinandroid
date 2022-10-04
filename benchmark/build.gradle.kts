@@ -55,7 +55,7 @@ android {
     testOptions {
         managedDevices {
             devices {
-                maybeCreate<ManagedVirtualDevice>("pixel5Api32").apply {
+                create<ManagedVirtualDevice>("pixel5Api30").apply {
                     device = "Pixel 5"
                     apiLevel = 30
                     systemImageSource = "aosp"
