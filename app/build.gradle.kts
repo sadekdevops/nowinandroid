@@ -1,3 +1,6 @@
+import com.android.build.gradle.internal.component.ApkCreationConfig
+import com.android.build.gradle.internal.tasks.factory.dependsOn
+
 /*
  * Copyright 2021 The Android Open Source Project
  *
@@ -118,4 +121,48 @@ configurations.configureEach {
         // Temporary workaround for https://issuetracker.google.com/174733673
         force("org.objenesis:objenesis:2.6")
     }
+}
+
+configurations {
+    create("releaseBaselineProfile") {
+        isCanBeConsumed = false
+        isCanBeResolved = true
+    }
+}
+
+dependencies {
+    "releaseBaselineProfile"(project(":benchmark", "baselineProfileProdBaselineBenchmark"))
+}
+
+val copyBpTask = tasks.register<GenerateBaselineProfTask>("copyBaselineProfile") {
+    inputArtifact.set(configurations.getByName("releaseBaselineProfile").incoming.artifacts.resolvedArtifacts.map {
+        layout.projectDirectory.file(it.single().file.absolutePath)
+    })
+    baselineProfTxt.set(layout.projectDirectory.file("src/main/baseline-prof.txt"))
+}
+
+afterEvaluate {
+    tasks.named("mergeDemoReleaseArtProfile").dependsOn(copyBpTask)
+    tasks.named("mergeProdReleaseArtProfile").dependsOn(copyBpTask)
+}
+
+
+abstract class GenerateBaselineProfTask : DefaultTask() {
+
+    @get:Inject
+    abstract val layout: ProjectLayout
+
+    @get:InputFile
+    abstract val inputArtifact: RegularFileProperty
+
+    @get:OutputFile
+    abstract val baselineProfTxt: RegularFileProperty
+
+    @TaskAction
+    fun execute() {
+
+        baselineProfTxt.asFile.get().delete()
+        inputArtifact.get().asFile.copyTo(baselineProfTxt.asFile.get())
+    }
+
 }
